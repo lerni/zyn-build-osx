@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This script builds an OSX version of zynaddsubfx
 # (http://zynaddsubfx.sourceforge.net)
