@@ -60,7 +60,7 @@ export PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig
 export PREFIX
 export SRCDIR
 
-export PATH=${PREFIX}/bin:$HOME/bin:/usr/local/git/bin/:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+export PATH=${PREFIX}/bin:/usr/local/git/bin/:/usr/bin:/bin:/usr/sbin:/sbin
 
 ## if the NOSTACK environment is set, skip re-building the stack
 ## if it has been built before
