@@ -63,8 +63,8 @@ export SRCDIR
 export PATH=${PREFIX}/bin:$HOME/bin:/usr/local/git/bin/:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
 
 ## if the NOSTACK environment is set, skip re-building the stack
-## the include folder check is just a cheap sanity check
-if test ! -d "${PREFIX}/include" -o -z "$NOSTACK"; then
+## if it has been built before
+if test ! -f "${PREFIX}/zyn_stack_complete" -o -z "$NOSTACK"; then
 
 rm -rf ${BUILDD}
 rm -rf ${PREFIX}
@@ -225,6 +225,9 @@ rm -rf fltk-1.3.3
 tar xzf ${SRCDIR}/fltk-1.3.3-source.tar.gz
 cd fltk-1.3.3
 autoconfbuild
+
+## stack built complete
+touch $PREFIX/zyn_stack_complete
 
 ################################################################################
 fi  ## NOSTACK
