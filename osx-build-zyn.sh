@@ -183,7 +183,6 @@ sed -i '' 's/CMAKE_OSX_SYSROOT /CMAKE_XXX_SYSROOT /g' ./pm_common/CMakeLists.txt
 CFLAGS="${OSXARCH} ${GLOBAL_CFLAGS}" \
 CXXFLAGS="${OSXARCH} ${GLOBAL_CXXFLAGS}" \
 LDFLAGS="${OSXARCH} ${GLOBAL_LDFLAGS} -headerpad_max_install_names" \
-## and other quick hack to override the hardcoded sysroot
 make -f pm_mac/Makefile.osx configuration=Release PF=${PREFIX} CMAKE_OSX_SYSROOT="-g"
 ## cd Release; make install # is also broken without sudo and with custom prefix
 ## so just deploy manually..
@@ -193,7 +192,6 @@ cp pm_common/portmidi.h ${PREFIX}/include
 cp porttime/porttime.h ${PREFIX}/include
 
 ################################################################################
-## back to some state of sanity.
 
 src liblo-0.28 tar.gz http://downloads.sourceforge.net/liblo/liblo-0.28.tar.gz
 autoconfbuild
@@ -306,7 +304,9 @@ mv -v ${TARGET_CONTENTS}/Resources/zynaddsubfx/examples ${TARGET_CONTENTS}/Resou
 rmdir ${TARGET_CONTENTS}/Resources/zynaddsubfx/
 rmdir ${TARGET_CONTENTS}bin
 
-## no rpath is for rtosc libs -> deployment script won't find it, copy manually
+## there is no rpath set for the rtosc libs,
+## hence the deployment script won't find it.
+## we just copy them manually. install_name_tool fixes things later
 cp rtosc/librtosc-cpp.dylib ${TARGET_CONTENTS}Frameworks/
 cp rtosc/librtosc.dylib ${TARGET_CONTENTS}Frameworks/
 
@@ -339,7 +339,7 @@ cat > ${TARGET_CONTENTS}Info.plist << EOF
 </plist>
 EOF
 
-## ... and add a wrapper script that checks for jack
+## ... and add a wrapper-script that checks for jack
 
 cat > "${TARGET_CONTENTS}MacOS/${PRODUCT_NAME}" << EOF
 #!/bin/sh
