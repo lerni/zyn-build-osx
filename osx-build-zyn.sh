@@ -1,6 +1,23 @@
 #!/bin/sh
 
+# This script builds an OSX version of zynaddsubfx
+# (http://zynaddsubfx.sourceforge.net)
+# and all its build-dependencies from scratch.
+#
+# It only requires a working c-compiler with C++11 support,
+# bash, sed, curl and make.  oh and 'git'
+#
+# It can be run by a 'normal user' (no sudo required).
+#
+# The script is sutable for headless (automatic) builds, but
+# note that the last step: building the DMG requires
+# a "Finder" process. The user needs to be graphically
+# logged in (but can be an inactive user, switch-user)
+#
+
+
 #### some influential environment variables:
+
 ## we keep a copy of the sources here:
 : ${SRCDIR=$HOME/src/stack}
 ## actual build location
@@ -15,13 +32,25 @@
 
 pushd "`/usr/bin/dirname \"$0\"`" > /dev/null; this_script_dir="`pwd`"; popd > /dev/null
 
-OSXARCH="-arch i386 -arch x86_64"
-
-GLOBAL_CPPFLAGS="-Wno-error=unused-command-line-argument"
-GLOBAL_CFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
-GLOBAL_CXXFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
-GLOBAL_LDFLAGS="-mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
-
+case `sw_vers -productVersion | cut -d'.' -f1,2` in
+	"10.10")
+		echo "Yosemite"
+		OSXARCH="-arch i386 -arch x86_64"
+		GLOBAL_CPPFLAGS="-Wno-error=unused-command-line-argument"
+		GLOBAL_CFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_CXXFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_LDFLAGS="-mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		;;
+	*)
+		echo "**UNTESTED OSX VERSION**"
+		echo "if it works, please report back :)"
+		OSXARCH="-arch i386 -arch x86_64"
+		GLOBAL_CPPFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_CFLAGS="-O3 -mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_CXXFLAGS="-O3 -mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_LDFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		;;
+esac
 
 ################################################################################
 set -e
@@ -33,6 +62,8 @@ export SRCDIR
 
 export PATH=${PREFIX}/bin:$HOME/bin:/usr/local/git/bin/:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
 
+## if the NOSTACK environment is set, skip re-building the stack
+## the include folder check is just a cheap sanity check
 if test ! -d "${PREFIX}/include" -o -z "$NOSTACK"; then
 
 rm -rf ${BUILDD}
@@ -47,10 +78,10 @@ mkdir -p ${BUILDD}
 function autoconfconf {
 set -e
 echo "======= $(pwd) ======="
-	CPPFLAGS="-I${PREFIX}/include${GLOBAL_CPPFLAGS:+ $GLOBAL_CPPFLAGS}$CPPFLAGS" \
-	CFLAGS="${OSXARCH}${GLOBAL_CFLAGS:+ $GLOBAL_CFLAGS}$CFLAGS" \
-	CXXFLAGS="${OSXARCH}${GLOBAL_CXXFLAGS:+ $GLOBAL_CXXFLAGS}$CXXFLAGS" \
-	LDFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS} -headerpad_max_install_names$LDFLAGS" \
+	CPPFLAGS="-I${PREFIX}/include${GLOBAL_CPPFLAGS:+ $GLOBAL_CPPFLAGS}" \
+	CFLAGS="${OSXARCH}${GLOBAL_CFLAGS:+ $GLOBAL_CFLAGS}" \
+	CXXFLAGS="${OSXARCH}${GLOBAL_CXXFLAGS:+ $GLOBAL_CXXFLAGS}" \
+	LDFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS} -headerpad_max_install_names" \
 	./configure --disable-dependency-tracking --prefix=$PREFIX $@
 }
 
@@ -162,26 +193,30 @@ cp pm_common/portmidi.h ${PREFIX}/include
 cp porttime/porttime.h ${PREFIX}/include
 
 ################################################################################
-# back to some state of sanity.
+## back to some state of sanity.
 
 src liblo-0.28 tar.gz http://downloads.sourceforge.net/liblo/liblo-0.28.tar.gz
 autoconfbuild
 
+################################################################################
+
 src freetype-2.5.3 tar.gz http://download.savannah.gnu.org/releases/freetype/freetype-2.5.3.tar.gz
-autoconfbuild --with-harfbuzz=no --with-png=no --enable-static --with-bzip2=no --with-zlib=no
+autoconfbuild --with-harfbuzz=no --with-png=no --with-bzip2=no
+
+################################################################################
+
+src fftw-3.3.4 tar.gz http://www.fftw.org/fftw-3.3.4.tar.gz
+autoconfbuild --with-our-malloc --disable-mpi
 
 ################################################################################
 
 src mxml-2.9 tar.gz http://www.msweet.org/files/project3/mxml-2.9.tar.gz
-# DSOFLAGS ? which standard did they read?
+## DSOFLAGS ? which standard did they read?
 DSOFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS} -headerpad_max_install_names" \
 autoconfconf
-# compiling the self-test & doc fails with multi-arch, so work around this
+## compiling the self-test & doc fails with multi-arch, so work around this
 make libmxml.1.dylib libmxml.a
 make -i install TARGETS=""
-
-src fftw-3.3.4 tar.gz http://www.fftw.org/fftw-3.3.4.tar.gz
-autoconfbuild --with-our-malloc --disable-mpi
 
 ################################################################################
 
@@ -304,7 +339,7 @@ cat > ${TARGET_CONTENTS}Info.plist << EOF
 </plist>
 EOF
 
-# ... and add a wrapper script that checks for jack
+## ... and add a wrapper script that checks for jack
 
 cat > "${TARGET_CONTENTS}MacOS/${PRODUCT_NAME}" << EOF
 #!/bin/sh
@@ -323,14 +358,14 @@ progbase=\`basename "\$progname"\`
 execname=\${curdir}/\${progbase}-bin
 
 if test -x "\$execname"; then
- cd "\${curdir}"
+  cd "\${curdir}"
   exec "\${execname}"
 fi
 EOF
 
 chmod +x "${TARGET_CONTENTS}MacOS/${PRODUCT_NAME}"
 
-# copy the application icon
+## copy the application icon
 cp -vi ${RSRC_DIR}/${PRODUCT_NAME}.icns ${TARGET_CONTENTS}/Resources
 
 
@@ -501,14 +536,14 @@ set -e
 sync
 
 echo "unmounting the disk image ..."
-# Umount the image ('eject' above may already have done that)
+## Umount the image ('eject' above may already have done that)
 umount "${DiskDevice}" || true
 hdiutil eject "${DiskDevice}" || true
 
-# Create a read-only version, use zlib compression
+## Create a read-only version, use zlib compression
 echo "compressing Image ..."
 hdiutil convert -format UDZO "${TMPDMG}" -imagekey zlib-level=9 -o "${UC_DMG}"
-# Delete the temporary files
+## Delete the temporary files
 rm "$TMPDMG"
 rm -rf "$MNTPATH"
 
