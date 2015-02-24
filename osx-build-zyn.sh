@@ -9,7 +9,7 @@
 #
 # It can be run by a 'normal user' (no sudo required).
 #
-# The script is sutable for headless (automatic) builds, but
+# The script is suitable for headless (automatic) builds, but
 # note that the last step: building the DMG requires
 # a "Finder" process. The user needs to be graphically
 # logged in (but can be an inactive user, switch-user)
