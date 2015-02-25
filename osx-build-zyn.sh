@@ -310,12 +310,6 @@ mv -v ${TARGET_CONTENTS}/Resources/zynaddsubfx/examples ${TARGET_CONTENTS}/Resou
 rmdir ${TARGET_CONTENTS}/Resources/zynaddsubfx/
 rmdir ${TARGET_CONTENTS}bin
 
-## there is no rpath set for the rtosc libs,
-## hence the deployment script won't find it.
-## we just copy them manually. install_name_tool fixes things later
-cp rtosc/librtosc-cpp.dylib ${TARGET_CONTENTS}Frameworks/
-cp rtosc/librtosc.dylib ${TARGET_CONTENTS}Frameworks/
-
 
 #######################################################################################
 ## finish OSX application bundle
@@ -413,7 +407,7 @@ for exe in ${TARGET_CONTENTS}MacOS/*; do
 	changes=""
 	libs=`otool -arch all -L $exe \
 		| awk '{print $1}' \
-		| egrep "($PREFIX|$BUILDD|^librtosc)" \
+		| egrep "$PREFIX" \
 		| grep -v 'libjack\.'`
 	set -e
 	for lib in $libs; do
@@ -437,7 +431,7 @@ for dylib in ${TARGET_CONTENTS}Frameworks/*.dylib ; do
 	changes=""
 	libs=`otool -arch all -L $dylib \
 		| awk '{print $1}' \
-		| egrep "($PREFIX|$BUILDD)" \
+		| egrep "$PREFIX" \
 		| grep -v 'libjack\.'`
 
 	for lib in $libs; do
