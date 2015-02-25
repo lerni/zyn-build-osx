@@ -241,12 +241,15 @@ fi  ## NOSTACK
 
 ## check out zyn from git, keep a local reference to speed up future clones
 
+#REPO_URL=git://github.com/fundamental/zynaddsubfx.git
+REPO_URL=git://git.code.sf.net/p/zynaddsubfx/code
+
 if test ! -d ${SRCDIR}/zynaddsubfx.git.reference; then
-	git clone --mirror git://github.com/fundamental/zynaddsubfx.git ${SRCDIR}/zynaddsubfx.git.reference
+	git clone --mirror ${REPO_URL} ${SRCDIR}/zynaddsubfx.git.reference
 fi
 
 cd ${BUILDD}
-git clone -b master --single-branch --reference ${SRCDIR}/zynaddsubfx.git.reference git://github.com/fundamental/zynaddsubfx.git || true
+git clone -b master --single-branch --reference ${SRCDIR}/zynaddsubfx.git.reference ${REPO_URL} zynaddsubfx || true
 cd zynaddsubfx
 git submodule update --init|| true
 
