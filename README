@@ -1,0 +1,17 @@
+This is a script to build an OS X version of zynaddsubfx
+(http://zynaddsubfx.sourceforge.net)
+
+All build-dependencies are compiled from scratch and an
+application bundle is created after compilation.
+
+It requires a working c-compiler with C++11 support (Xcode tools)
+bash, sed, curl make and git (all available by default on OSX).
+
+The script can be run by a 'normal user' (no sudo required).
+
+For more information, please see the comments in osx-build-zyn.sh
+
+Usage: 
+  git clone git://github.com/x42/zynbuild.git
+  cd zynbuild
+  ./osx-build-zyn.sh
