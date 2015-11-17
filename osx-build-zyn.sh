@@ -401,7 +401,7 @@ execname=\${curdir}/\${progbase}-bin
 
 if test -x "\$execname"; then
   cd "\${curdir}"
-  exec "\${execname}"
+  exec "\${execname}" -a
 fi
 EOF
 
