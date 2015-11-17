@@ -19,7 +19,7 @@
 #### some influential environment variables:
 
 ## we keep a copy of the sources here:
-: ${SRCDIR=$HOME/src/stack}
+: ${SRCDIR=/var/tmp/src_cache}
 ## actual build location
 : ${BUILDD=$HOME/src/zyn_build}
 ## target install dir (chroot-like)
