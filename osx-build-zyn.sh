@@ -30,7 +30,7 @@
 ## if the NOSTACK environment var is not empty, skip re-building the stack if it has been built before
 : ${NOSTACK=""}
 ## semicolon separated list of fat-binary architectures, ppc;i386;x86_64
-: ${ARCHITECTURES="x86_64"}
+: ${ARCHITECTURES="i386;x86_64"}
 
 
 pushd "`/usr/bin/dirname \"$0\"`" > /dev/null; this_script_dir="`pwd`"; popd > /dev/null
@@ -87,6 +87,8 @@ export PATH=${PREFIX}/bin:/usr/local/git/bin/:/usr/bin:/bin:/usr/sbin:/sbin
 ## if it has been built before
 if test ! -f "${PREFIX}/zyn_stack_complete" -o -z "$NOSTACK"; then
 
+
+## Start with a clean slate
 rm -rf ${BUILDD}
 rm -rf ${PREFIX}
 
@@ -180,11 +182,15 @@ tar xzf ${SRCDIR}/jack_osx_dev.tar.gz
 
 
 ################################################################################
-## does not build cleanly with multiarch, it's optional for zynaddsubfx
-## TODO build separate dylibs (one for every arch) then lipo combine them
-if ! grep -q ";" "$ARCHITECTURES"; then
-	src portaudio tgz http://portaudio.com/archives/pa_stable_v19_20140130.tgz
-	autoconfbuild
+## does not build cleanly with multiarch (little/big endian),
+## TODO build separate dylibs (one for every arch) then lipo combine them and 
+## ifdef the mixed header. 
+## it's optional for zynaddsubfx, since zyn needs C++11 and there's no
+## easy way to build PPC binaries with a C++11 compiler we don't care..
+
+src portaudio tgz http://portaudio.com/archives/pa_stable_v19_20140130.tgz
+if ! echo "$OSXARCH" | grep -q "ppc"; then
+	autoconfbuild --enable-mac-universal --enable-static=no
 fi
 
 ################################################################################
@@ -223,6 +229,7 @@ cp porttime/porttime.h ${PREFIX}/include
 ################################################################################
 
 src liblo-0.28 tar.gz http://downloads.sourceforge.net/liblo/liblo-0.28.tar.gz
+## clang/OSX is picky about abs()  -Werror,-Wabsolute-value
 patch -p1 << EOF
 --- a/src/message.c	2015-11-17 17:12:15.000000000 +0100
 +++ b/src/message.c	2015-11-17 17:13:28.000000000 +0100
