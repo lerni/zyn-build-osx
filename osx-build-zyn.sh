@@ -5,7 +5,7 @@
 # and all its build-dependencies from scratch.
 #
 # It requires a working c-compiler with C++11 support,
-# bash, sed, curl and make and git
+# bash, sed, curl, make and git
 #
 # It can be run by a 'normal user' (no sudo required).
 #
@@ -29,6 +29,8 @@
 : ${MAKEFLAGS="-j4"}
 ## if the NOSTACK environment var is not empty, skip re-building the stack if it has been built before
 : ${NOSTACK=""}
+## semicolon separated list of fat-binary architectures, ppc;i386;x86_64
+: ${ARCHITECTURES="x86_64"}
 
 
 pushd "`/usr/bin/dirname \"$0\"`" > /dev/null; this_script_dir="`pwd`"; popd > /dev/null
@@ -39,7 +41,6 @@ pushd "`/usr/bin/dirname \"$0\"`" > /dev/null; this_script_dir="`pwd`"; popd > /
 case `sw_vers -productVersion | cut -d'.' -f1,2` in
 	"10.10")
 		echo "Yosemite"
-		OSXARCH="-arch i386 -arch x86_64"
 		GLOBAL_CPPFLAGS="-Wno-error=unused-command-line-argument"
 		GLOBAL_CFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
 		GLOBAL_CXXFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
@@ -48,6 +49,7 @@ case `sw_vers -productVersion | cut -d'.' -f1,2` in
 	*)
 		echo "**UNTESTED OSX VERSION**"
 		echo "if it works, please report back :)"
+		ARCHITECTURES="i386;x86_64"
 		OSXARCH="-arch i386 -arch x86_64"
 		GLOBAL_CPPFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
 		GLOBAL_CFLAGS="-O3 -mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
@@ -55,6 +57,16 @@ case `sw_vers -productVersion | cut -d'.' -f1,2` in
 		GLOBAL_LDFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090 -headerpad_max_install_names"
 		;;
 esac
+
+if test -z "$OSXARCH"; then
+	OLDIFS=$IFS
+	IFS=';'
+	for arch in $ARCHITECTURES; do
+		OSXARCH="$OSXARCH -arch $arch"
+	done
+	echo "SET ARCH:  $OSXARCH"
+	IFS=$OLDIFS
+fi
 
 ################################################################################
 set -e
@@ -90,7 +102,7 @@ echo "======= $(pwd) ======="
 	CPPFLAGS="-I${PREFIX}/include${GLOBAL_CPPFLAGS:+ $GLOBAL_CPPFLAGS}" \
 	CFLAGS="${OSXARCH}${GLOBAL_CFLAGS:+ $GLOBAL_CFLAGS}" \
 	CXXFLAGS="${OSXARCH}${GLOBAL_CXXFLAGS:+ $GLOBAL_CXXFLAGS}" \
-	LDFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS} -headerpad_max_install_names" \
+	LDFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS}" \
 	./configure --disable-dependency-tracking --prefix=$PREFIX $@
 }
 
@@ -151,7 +163,7 @@ make install
 
 src zlib-1.2.7 tar.gz ftp://ftp.simplesystems.org/pub/libpng/png/src/history/zlib/zlib-1.2.7.tar.gz
 CFLAGS="${GLOBAL_CFLAGS}" \
-LDFLAGS="${GLOBAL_LDFLAGS} -headerpad_max_install_names" \
+LDFLAGS="${GLOBAL_LDFLAGS}" \
 ./configure --archs="$OSXARCH" --prefix=$PREFIX
 make $MAKEFLAGS
 make install
@@ -168,10 +180,12 @@ tar xzf ${SRCDIR}/jack_osx_dev.tar.gz
 
 
 ################################################################################
-## disabled for now. it does not build cleanly with multiarch
-## it's optional for zynaddsubfx, anyway
-#src portaudio tgz http://portaudio.com/archives/pa_stable_v19_20140130.tgz
-#autoconfbuild
+## does not build cleanly with multiarch, it's optional for zynaddsubfx
+## TODO build separate dylibs (one for every arch) then lipo combine them
+if ! grep -q ";" "$ARCHITECTURES"; then
+	src portaudio tgz http://portaudio.com/archives/pa_stable_v19_20140130.tgz
+	autoconfbuild
+fi
 
 ################################################################################
 
@@ -184,14 +198,20 @@ cd portmidi
 ## XXX pass this via cmake args somehow, yet the 'normal' way for cmake does not
 ## seem to apply...  whatever. sed to he rescue
 # -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=10.5 -DCMAKE_OSX_ARCHITECTURES="i386;x86_64"
+if ! echo "$OSXARCH" | grep -q "i386"; then
+sed -i '' 's/ i386//g' CMakeLists.txt
+fi
 if ! echo "$OSXARCH" | grep -q "ppc"; then
 sed -i '' 's/ ppc//g' CMakeLists.txt
+fi
+if ! echo "$OSXARCH" | grep -q "x86_64"; then
+sed -i '' 's/ x86_64//g' CMakeLists.txt
 fi
 ## Argh! portmidi FORCE hardcodes the sysroot to 10.5
 sed -i '' 's/CMAKE_OSX_SYSROOT /CMAKE_XXX_SYSROOT /g' ./pm_common/CMakeLists.txt
 CFLAGS="${OSXARCH} ${GLOBAL_CFLAGS}" \
 CXXFLAGS="${OSXARCH} ${GLOBAL_CXXFLAGS}" \
-LDFLAGS="${OSXARCH} ${GLOBAL_LDFLAGS} -headerpad_max_install_names" \
+LDFLAGS="${OSXARCH} ${GLOBAL_LDFLAGS}" \
 make -f pm_mac/Makefile.osx configuration=Release PF=${PREFIX} CMAKE_OSX_SYSROOT="-g"
 ## cd Release; make install # is also broken without sudo and with custom prefix
 ## so just deploy manually..
@@ -203,6 +223,18 @@ cp porttime/porttime.h ${PREFIX}/include
 ################################################################################
 
 src liblo-0.28 tar.gz http://downloads.sourceforge.net/liblo/liblo-0.28.tar.gz
+patch -p1 << EOF
+--- a/src/message.c	2015-11-17 17:12:15.000000000 +0100
++++ b/src/message.c	2015-11-17 17:13:28.000000000 +0100
+@@ -997,6 +997,6 @@
+     if (d != end) {
+         fprintf(stderr,
+                 "liblo warning: type and data do not match (off by %d) in message %p\n",
+-                abs((char *) d - (char *) end), m);
++                abs((int)((char *) d - (char *) end)), m);
+     }
+ }
+EOF
 autoconfbuild
 
 ################################################################################
@@ -219,7 +251,7 @@ autoconfbuild --with-our-malloc --disable-mpi
 
 src mxml-2.9 tar.gz http://www.msweet.org/files/project3/mxml-2.9.tar.gz
 ## DSOFLAGS ? which standard did they read?
-DSOFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS} -headerpad_max_install_names" \
+DSOFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS}" \
 autoconfconf
 ## compiling the self-test & doc fails with multi-arch, so work around this
 make libmxml.1.dylib libmxml.a
@@ -296,7 +328,7 @@ rm -rf build
 mkdir -p build; cd build
 cmake -DCMAKE_INSTALL_PREFIX=/ \
 	-DCMAKE_BUILD_TYPE="None" \
-	-DCMAKE_OSX_ARCHITECTURES="i386;x86_64" \
+	-DCMAKE_OSX_ARCHITECTURES="$ARCHITECTURES" \
 	-DCMAKE_C_FLAGS="-I${PREFIX}/include $GLOBAL_CFLAGS" \
 	-DCMAKE_CXX_FLAGS="-I${PREFIX}/include $GLOBAL_CXXFLAGS" \
 	-DCMAKE_EXE_LINKER_FLAGS="-L$PREFIX/lib $GLOBAL_LDFLAGS" \
@@ -400,7 +432,7 @@ while [ true ] ; do
 			base=`basename $dep`
 			if ! test -f ${TARGET_CONTENTS}Frameworks/$base; then
 				cp -v $dep ${TARGET_CONTENTS}Frameworks/
-			  missing=true
+				missing=true
 			fi
 		done
 	done
