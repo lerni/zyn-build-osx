@@ -39,7 +39,7 @@ case `sw_vers -productVersion | cut -d'.' -f1,2` in
 		GLOBAL_CPPFLAGS="-Wno-error=unused-command-line-argument"
 		GLOBAL_CFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
 		GLOBAL_CXXFLAGS="-O3 -Wno-error=unused-command-line-argument -mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
-		GLOBAL_LDFLAGS="-mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_LDFLAGS="-mmacosx-version-min=10.9 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090 -headerpad_max_install_names"
 		;;
 	*)
 		echo "**UNTESTED OSX VERSION**"
@@ -48,7 +48,7 @@ case `sw_vers -productVersion | cut -d'.' -f1,2` in
 		GLOBAL_CPPFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
 		GLOBAL_CFLAGS="-O3 -mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
 		GLOBAL_CXXFLAGS="-O3 -mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
-		GLOBAL_LDFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090"
+		GLOBAL_LDFLAGS="-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MAX_ALLOWED=1090 -headerpad_max_install_names"
 		;;
 esac
 
@@ -289,11 +289,12 @@ mkdir -p ${TARGET_CONTENTS}Frameworks
 rm -rf build
 mkdir -p build; cd build
 cmake -DCMAKE_INSTALL_PREFIX=/ \
+	-DCMAKE_BUILD_TYPE="None" \
 	-DCMAKE_OSX_ARCHITECTURES="i386;x86_64" \
-	-DCMAKE_CPP_FLAGS="-I${PREFIX}/include" \
-	-DCMAKE_C_FLAGS="$GLOBAL_CFLAGS" \
-	-DCMAKE_CXX_FLAGS="$GLOBAL_CXXFLAGS" \
-	-DCMAKE_LD_FLAGS="-L$PREFIX/lib $GLOBAL_CXXFLAGS" \
+	-DCMAKE_C_FLAGS="-I${PREFIX}/include $GLOBAL_CFLAGS" \
+	-DCMAKE_CXX_FLAGS="-I${PREFIX}/include $GLOBAL_CXXFLAGS" \
+	-DCMAKE_EXE_LINKER_FLAGS="-L$PREFIX/lib $GLOBAL_LDFLAGS" \
+	-DCMAKE_SKIP_BUILD_RPATH=ON \
 	..
 make
 DESTDIR=${TARGET_CONTENTS} make install
@@ -302,6 +303,9 @@ DESTDIR=${TARGET_CONTENTS} make install
 ## fixup 'make install' for bundle
 
 mv -v ${TARGET_CONTENTS}bin/zynaddsubfx ${TARGET_CONTENTS}MacOS/zynaddsubfx-bin
+#mv -v ${TARGET_CONTENTS}bin/zynaddsubfx-ext-gui ${TARGET_CONTENTS}MacOS/
+rm ${TARGET_CONTENTS}bin/zynaddsubfx-ext-gui
+
 mv -v ${TARGET_CONTENTS}share ${TARGET_CONTENTS}/Resources
 
 mv -v ${TARGET_CONTENTS}/Resources/zynaddsubfx/banks ${TARGET_CONTENTS}/Resources/
@@ -383,7 +387,8 @@ while [ true ] ; do
 		deps=`otool -arch all -L $file \
 			| awk '{print $1}' \
 			| egrep "$PREFIX" \
-			| grep -v 'libjack\.'`
+			| grep -v 'libjack\.' \
+			| sort | uniq`
 		set -e
 		for dep in $deps ; do
 			base=`basename $dep`
@@ -408,7 +413,8 @@ for exe in ${TARGET_CONTENTS}MacOS/*; do
 	libs=`otool -arch all -L $exe \
 		| awk '{print $1}' \
 		| egrep "$PREFIX" \
-		| grep -v 'libjack\.'`
+		| grep -v 'libjack\.' \
+		| sort | uniq`
 	set -e
 	for lib in $libs; do
 		base=`basename $lib`
@@ -432,7 +438,8 @@ for dylib in ${TARGET_CONTENTS}Frameworks/*.dylib ; do
 	libs=`otool -arch all -L $dylib \
 		| awk '{print $1}' \
 		| egrep "$PREFIX" \
-		| grep -v 'libjack\.'`
+		| grep -v 'libjack\.' \
+		| sort | uniq`
 
 	for lib in $libs; do
 		base=`basename $lib`
