@@ -4,8 +4,8 @@
 # (http://zynaddsubfx.sourceforge.net)
 # and all its build-dependencies from scratch.
 #
-# It only requires a working c-compiler with C++11 support,
-# bash, sed, curl and make.  oh and 'git'
+# It requires a working c-compiler with C++11 support,
+# bash, sed, curl and make and git
 #
 # It can be run by a 'normal user' (no sudo required).
 #
@@ -14,7 +14,6 @@
 # a "Finder" process. The user needs to be graphically
 # logged in (but can be an inactive user, switch-user)
 #
-
 
 #### some influential environment variables:
 
@@ -28,9 +27,14 @@
 : ${OUTDIR="/tmp/"}
 ## concurrency
 : ${MAKEFLAGS="-j4"}
+## if the NOSTACK environment var is not empty, skip re-building the stack if it has been built before
+: ${NOSTACK=""}
 
 
 pushd "`/usr/bin/dirname \"$0\"`" > /dev/null; this_script_dir="`pwd`"; popd > /dev/null
+
+################################################################################
+#### set compiler flags depending on build-host
 
 case `sw_vers -productVersion | cut -d'.' -f1,2` in
 	"10.10")
@@ -62,7 +66,12 @@ export SRCDIR
 
 export PATH=${PREFIX}/bin:/usr/local/git/bin/:/usr/bin:/bin:/usr/sbin:/sbin
 
-## if the NOSTACK environment is set, skip re-building the stack
+
+################################################################################
+###  COMPILE THE BUILD-DEPENDENCIES  -> NOSTACK
+################################################################################
+
+## if the NOSTACK environment is not empty, skip re-building the stack
 ## if it has been built before
 if test ! -f "${PREFIX}/zyn_stack_complete" -o -z "$NOSTACK"; then
 
@@ -234,11 +243,8 @@ fi  ## NOSTACK
 ################################################################################
 
 
-################################################################################
-################################################################################
-################################################################################
 
-
+################################################################################
 ## check out zyn from git, keep a local reference to speed up future clones
 
 #REPO_URL=git://github.com/fundamental/zynaddsubfx.git
@@ -284,7 +290,7 @@ mkdir -p ${TARGET_CONTENTS}MacOS
 mkdir -p ${TARGET_CONTENTS}Frameworks
 
 #######################################################################################
-## finally,  build zynaddsubfx
+## finally, configure and build zynaddsubfx
 
 rm -rf build
 mkdir -p build; cd build
@@ -300,7 +306,7 @@ make
 DESTDIR=${TARGET_CONTENTS} make install
 
 #######################################################################################
-## fixup 'make install' for bundle
+## fixup 'make install' for OSX application bundle
 
 mv -v ${TARGET_CONTENTS}bin/zynaddsubfx ${TARGET_CONTENTS}MacOS/zynaddsubfx-bin
 #mv -v ${TARGET_CONTENTS}bin/zynaddsubfx-ext-gui ${TARGET_CONTENTS}MacOS/
@@ -374,7 +380,7 @@ cp -vi ${RSRC_DIR}/${PRODUCT_NAME}.icns ${TARGET_CONTENTS}/Resources
 
 
 ##############################################################################
-## add dependancies..
+## add dependencies..
 
 echo "bundle libraries ..."
 while [ true ] ; do
@@ -566,6 +572,6 @@ rm ${ICNSTMP}.icns ${ICNSTMP}.rsrc
 rm -rf $BUNDLEDIR
 
 echo
-echo "packaging suceeded:"
+echo "packaging succeeded:"
 ls -l "$UC_DMG"
 echo "Done."
