@@ -341,6 +341,7 @@ cmake -DCMAKE_INSTALL_PREFIX=/ \
 	-DCMAKE_CXX_FLAGS="-I${PREFIX}/include $GLOBAL_CXXFLAGS" \
 	-DCMAKE_EXE_LINKER_FLAGS="-L$PREFIX/lib $GLOBAL_LDFLAGS" \
 	-DCMAKE_SKIP_BUILD_RPATH=ON \
+	-DNoNeonPlease=ON \
 	..
 make
 DESTDIR=${TARGET_CONTENTS} make install
@@ -360,6 +361,9 @@ mv -v ${TARGET_CONTENTS}/Resources/zynaddsubfx/examples ${TARGET_CONTENTS}/Resou
 rmdir ${TARGET_CONTENTS}/Resources/zynaddsubfx/
 rmdir ${TARGET_CONTENTS}bin
 
+mv  -v ${TARGET_CONTENTS}lib/lv2 ${BUNDLEDIR}/
+mv  -v ${TARGET_CONTENTS}lib/vst ${BUNDLEDIR}/
+rmdir ${TARGET_CONTENTS}lib
 
 #######################################################################################
 ## finish OSX application bundle
@@ -518,7 +522,7 @@ VOLNAME=$PRODUCT_NAME-${VERSION}
 EXTRA_SPACE_MB=5
 
 
-DMGMEGABYTES=$[ `du -sck "${TARGET_BUILD_DIR}" | tail -n 1 | cut -f 1` * 1024 / 1048576 + $EXTRA_SPACE_MB ]
+DMGMEGABYTES=$[ `du -sck "${BUNDLEDIR}" | tail -n 1 | cut -f 1` * 1024 / 1048576 + $EXTRA_SPACE_MB ]
 echo "DMG MB = " $DMGMEGABYTES
 
 MNTPATH=`mktemp -d -t mntpath`
@@ -538,7 +542,9 @@ DiskDevice=$(hdid -nomount "$TMPDMG" | grep Apple_HFS | cut -f 1 -d ' ')
 newfs_hfs -v "${VOLNAME}" "${DiskDevice}"
 mount -t hfs -o nobrowse "${DiskDevice}" "${MNTPATH}"
 
-cp -a ${TARGET_BUILD_DIR} "${MNTPATH}/${APPNAME}"
+cp -a "${TARGET_BUILD_DIR}" "${MNTPATH}/${APPNAME}"
+cp -a "${BUNDLEDIR}/lv2" "${MNTPATH}/"
+cp -a "${BUNDLEDIR}/vst" "${MNTPATH}/"
 
 mkdir "${MNTPATH}/.background"
 cp -vi ${DMGBACKGROUND} "${MNTPATH}/.background/dmgbg.png"
@@ -561,7 +567,7 @@ echo '
 	   set current view of container window to icon view
 	   set toolbar visible of container window to false
 	   set statusbar visible of container window to false
-	   set the bounds of container window to {400, 200, 800, 440}
+	   set the bounds of container window to {400, 200, 800, 580}
 	   set theViewOptions to the icon view options of container window
 	   set arrangement of theViewOptions to not arranged
 	   set icon size of theViewOptions to 64
@@ -569,6 +575,8 @@ echo '
 	   make new alias file at container window to POSIX file "/Applications" with properties {name:"Applications"}
 	   set position of item "'${APPNAME}'" of container window to {100, 100}
 	   set position of item "Applications" of container window to {310, 100}
+	   set position of item "lv2" of container window to {100, 260}
+	   set position of item "vst" of container window to {310, 260}
 	   close
 	   open
 	   update without registering applications
