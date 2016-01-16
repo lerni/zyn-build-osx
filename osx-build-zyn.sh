@@ -294,7 +294,8 @@ if test ! -d ${SRCDIR}/zynaddsubfx.git.reference; then
 fi
 
 cd ${BUILDD}
-git clone -b master --single-branch --reference ${SRCDIR}/zynaddsubfx.git.reference ${REPO_URL} zynaddsubfx || true
+git clone -b dpf-plugin --single-branch --reference ${SRCDIR}/zynaddsubfx.git.reference ${REPO_URL} zynaddsubfx || true
+
 cd zynaddsubfx
 git submodule update --init|| true
 
