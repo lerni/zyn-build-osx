@@ -242,7 +242,7 @@ patch -p1 << EOF
      }
  }
 EOF
-autoconfbuild
+autoconfbuild --disable-shared --enable-static
 
 ################################################################################
 
@@ -259,9 +259,9 @@ autoconfbuild --with-our-malloc --disable-mpi
 src mxml-2.9 tar.gz http://www.msweet.org/files/project3/mxml-2.9.tar.gz
 ## DSOFLAGS ? which standard did they read?
 DSOFLAGS="${OSXARCH}${GLOBAL_LDFLAGS:+ $GLOBAL_LDFLAGS}" \
-autoconfconf
+autoconfbuild --disable-shared --enable-static
 ## compiling the self-test & doc fails with multi-arch, so work around this
-make libmxml.1.dylib libmxml.a
+make libmxml.a
 make -i install TARGETS=""
 
 ################################################################################
