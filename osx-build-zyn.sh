@@ -350,8 +350,7 @@ DESTDIR=${TARGET_CONTENTS} make install
 ## fixup 'make install' for OSX application bundle
 
 mv -v ${TARGET_CONTENTS}bin/zynaddsubfx ${TARGET_CONTENTS}MacOS/zynaddsubfx-bin
-#mv -v ${TARGET_CONTENTS}bin/zynaddsubfx-ext-gui ${TARGET_CONTENTS}MacOS/
-rm ${TARGET_CONTENTS}bin/zynaddsubfx-ext-gui
+mv ${TARGET_CONTENTS}bin/zynaddsubfx-ext-gui ${TARGET_CONTENTS}lib/lv2/ZynAddSubFX.lv2/
 
 mv -v ${TARGET_CONTENTS}share ${TARGET_CONTENTS}/Resources
 
