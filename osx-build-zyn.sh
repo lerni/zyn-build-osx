@@ -294,7 +294,7 @@ if test ! -d ${SRCDIR}/zynaddsubfx.git.reference; then
 fi
 
 cd ${BUILDD}
-git clone -b dpf-plugin --single-branch --reference ${SRCDIR}/zynaddsubfx.git.reference ${REPO_URL} zynaddsubfx || true
+git clone --single-branch --reference ${SRCDIR}/zynaddsubfx.git.reference ${REPO_URL} zynaddsubfx || true
 
 cd zynaddsubfx
 git submodule update --init|| true
@@ -337,8 +337,8 @@ mkdir -p build; cd build
 cmake -DCMAKE_INSTALL_PREFIX=/ \
 	-DCMAKE_BUILD_TYPE="None" \
 	-DCMAKE_OSX_ARCHITECTURES="$ARCHITECTURES" \
-	-DCMAKE_C_FLAGS="-I${PREFIX}/include $GLOBAL_CFLAGS" \
-	-DCMAKE_CXX_FLAGS="-I${PREFIX}/include $GLOBAL_CXXFLAGS" \
+	-DCMAKE_C_FLAGS="-I${PREFIX}/include $GLOBAL_CFLAGS -Wno-unused-parameter" \
+	-DCMAKE_CXX_FLAGS="-I${PREFIX}/include $GLOBAL_CXXFLAGS -Wno-unused-parameter" \
 	-DCMAKE_EXE_LINKER_FLAGS="-L$PREFIX/lib $GLOBAL_LDFLAGS" \
 	-DCMAKE_SKIP_BUILD_RPATH=ON \
 	-DNoNeonPlease=ON \
